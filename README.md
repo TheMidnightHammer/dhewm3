@@ -107,7 +107,7 @@ Inside your dhewm3 clone
 
 Open a terminal and follow these steps:
 
-* Run `chmod +x build.sh && chmod +x run.sh` this allows you to run the build.sh and run.sh files.
+* Run `chmod +x build.sh && chmod +x run.sh` this allows you to run the `build.sh` and `run.sh` files.
 
 * Run `./build.sh` This file installs all dependencies, builds dhewm3 and moves all necessary files to the main folder.
 
