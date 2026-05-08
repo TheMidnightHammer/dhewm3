@@ -381,17 +381,25 @@ if(D3_COMPILER_IS_GCC_OR_CLANG)
 		set(OPT_LEVEL "-O2")
 	endif()
 
-	set(CMAKE_C_FLAGS_DEBUG "-g -ggdb -D_DEBUG -O0")
-	set(CMAKE_C_FLAGS_DEBUGALL "-g -ggdb -D_DEBUG")
-	set(CMAKE_C_FLAGS_PROFILE "-g -ggdb -D_DEBUG -O1 -fno-omit-frame-pointer")
-	set(CMAKE_C_FLAGS_RELEASE "${OPT_LEVEL} -fno-math-errno -fno-trapping-math  -ffinite-math-only -fomit-frame-pointer")
-	set(CMAKE_C_FLAGS_RELWITHDEBINFO "-g -ggdb ${OPT_LEVEL} -fno-math-errno -fno-trapping-math  -ffinite-math-only -fno-omit-frame-pointer")
-	set(CMAKE_C_FLAGS_MINSIZEREL "-Os -fno-math-errno -fno-trapping-math  -ffinite-math-only -fomit-frame-pointer")
+	set(CMAKE_C_FLAGS_RELEASE "${OPT_LEVEL} -fomit-frame-pointer")
+        set(CMAKE_C_FLAGS_RELWITHDEBINFO "-g -ggdb ${OPT_LEVEL} -fno-omit-frame-pointer")
+        set(CMAKE_C_FLAGS_MINSIZEREL "-Os -fomit-frame-pointer")
+ 
+        set(CMAKE_CXX_FLAGS_DEBUGALL ${CMAKE_C_FLAGS_DEBUGALL})
+        set(CMAKE_CXX_FLAGS_PROFILE ${CMAKE_C_FLAGS_PROFILE})
+ 
+        add_compile_options(-fno-math-errno -fno-trapping-math)
 
-	set(CMAKE_CXX_FLAGS_DEBUGALL ${CMAKE_C_FLAGS_DEBUGALL})
-	set(CMAKE_CXX_FLAGS_PROFILE ${CMAKE_C_FLAGS_PROFILE})
+        if( (NOT cpu STREQUAL "arm64") OR APPLE OR WIN32 )
+                # RPi5 on Linux has a weird bug with -ffinite-math-only (#749)
+                # so only enable it for other CPU architectures or Apple
+                # or Windows ARM64 devices, that most probably use different CPUs
+                add_compile_options(-ffinite-math-only)
+       endif()
+
 
 	add_compile_options(-fno-strict-aliasing)
+	# whoever said what is bellow is a smart guy
 	# dear idiot compilers, don't fuck up math code with useless FMA "optimizations"
 	# (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100839)
 	CHECK_CXX_COMPILER_FLAG("-ffp-contract=off" cxx_has_fp-contract)
