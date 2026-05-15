@@ -324,6 +324,13 @@ try_again:
 
 #if SDL_VERSION_ATLEAST(2, 0, 0) // SDL2 and SDL3 window creation
 
+        common->Printf("Requesting OpenGL 3.1 Core Profile...\n");
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+        // This flag is useful to ensure you aren't accidentally using deprecated features
+        //SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+
 		if ( r_glDebugContext.GetBool() ) {
 			common->Printf( "Requesting an OpenGL Debug Context (r_glDebugContext is enabled)\n" );
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -574,6 +581,14 @@ try_again:
 	#endif // SDL2
 
 		context = SDL_GL_CreateContext(window);
+
+		if ( !context ) {
+			common->FatalError( "SDL_GL_CreateContext failed: %s", SDL_GetError() );
+		}
+
+		if ( SDL_GL_MakeCurrent( window, context ) != 0 ) {
+			common->FatalError( "SDL_GL_MakeCurrent failed: %s", SDL_GetError() );
+		}
 
 		GLimp_SetSwapInterval( r_swapInterval.GetInteger() );
 		r_swapInterval.ClearModified();

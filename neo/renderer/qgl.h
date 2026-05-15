@@ -58,16 +58,19 @@ If you have questions concerning this license or the applicable additional terms
 typedef void (*GLExtension_t)(void);
 
 #ifdef __cplusplus
-	extern "C" {
+    extern "C" {
 #endif
 
 GLExtension_t GLimp_ExtensionPointer( const char *name );
 
 #ifdef __cplusplus
-	}
+    }
 #endif
 
-// declare qgl functions
+typedef const GLubyte * (APIENTRYP PFNGLGETSTRINGIPROC) (GLenum name, GLuint index);
+
+extern PFNGLGETSTRINGIPROC qglGetStringi;
+
 #define QGLPROC(name, rettype, args) extern rettype (APIENTRYP q##name) args;
 #include "renderer/qgl_proc.h"
 
@@ -105,6 +108,8 @@ extern	PFNGLACTIVESTENCILFACEEXTPROC	qglActiveStencilFaceEXT;
 typedef void (APIENTRYP PFNGLSTENCILOPSEPARATEPROC) (GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);
 #endif
 extern PFNGLSTENCILOPSEPARATEPROC qglStencilOpSeparate;
+
+typedef const GLubyte * (GLAPIENTRYP PFNGLGETSTRINGIPROC) (GLenum name, GLuint index);
 
 // ARB_texture_compression
 extern	PFNGLCOMPRESSEDTEXIMAGE2DARBPROC	qglCompressedTexImage2DARB;

@@ -50,6 +50,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "stb_image_write.h"
 
+PFNGLGETSTRINGIPROC qglGetStringi = NULL;
+
 // functions that are not called every frame
 
 glconfig_t	glConfig;
@@ -383,6 +385,10 @@ bool R_CheckExtension( const char *name ) {
 	return true;
 }
 
+#ifndef GL_NUM_EXTENSIONS
+	#define GL_NUM_EXTENSIONS 0x821D
+#endif
+
 /*
 ==================
 R_CheckPortableExtensions
@@ -390,6 +396,11 @@ R_CheckPortableExtensions
 ==================
 */
 static void R_CheckPortableExtensions( void ) {
+	if ( glConfig.version_string == NULL ) {
+        common->Printf( "R_CheckPortableExtensions: glConfig.version_string is NULL, skipping...\n" );
+        return;
+    }
+
 	glConfig.glVersion = atof( glConfig.version_string );
 
 	// GL_ARB_multitexture
@@ -831,11 +842,64 @@ void R_InitOpenGL( void ) {
 	Sys_InitInput();
 	soundSystem->InitHW();
 
-	// get our config strings
+	// get our config strings using OpenGL 3.1
+
+	int major=0, minor=0;
+	qglGetIntegerv(GL_MAJOR_VERSION, &major);
+	qglGetIntegerv(GL_MINOR_VERSION, &minor);
+	printf("Got OpenGL %d.%d!\n", major, minor);
+
 	glConfig.vendor_string = (const char *)qglGetString(GL_VENDOR);
-	glConfig.renderer_string = (const char *)qglGetString(GL_RENDERER);
-	glConfig.version_string = (const char *)qglGetString(GL_VERSION);
-	glConfig.extensions_string = (const char *)qglGetString(GL_EXTENSIONS);
+    glConfig.renderer_string = (const char *)qglGetString(GL_RENDERER);
+    glConfig.version_string = (const char *)qglGetString(GL_VERSION);
+    const char* exts = (const char *)qglGetString(GL_EXTENSIONS);
+    if (exts == NULL) {
+        common->Printf("Core Profile detected, getting config strings\n");
+
+        // Query the number of extensions
+    	GLint numExtensions = 0;
+    	qglGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+
+    	idStr fullExtensionString = "";
+
+		// Explicitly load the function address from the driver because the compiler is bullshit
+		qglGetStringi = (PFNGLGETSTRINGIPROC)GLimp_ExtensionPointer( "glGetStringi" );
+
+		// If the driver doesn't give us the pointer, 1. don't call it! 2. we say fuck !
+		if ( qglGetStringi == NULL ) {
+			common->FatalError( "glGetStringi not found! Your GPU driver might not support OpenGL 3.1+ Core." );
+		}
+
+    	for (int i = 0; i < numExtensions; i++) {
+    	    const char* ext = (const char*)qglGetStringi(GL_EXTENSIONS, i);
+    	    if (ext) {
+    	        fullExtensionString += ext;
+    	        if (i < numExtensions - 1) {
+    	            fullExtensionString += " "; // Space-separated as per legacy format
+					if (fullExtensionString.IsEmpty()) {
+						common->Printf("WARNING: Extension string is empty!\n");
+						glConfig.extensions_string = Mem_CopyString(""); 
+					} else {
+						glConfig.extensions_string = Mem_CopyString(fullExtensionString.c_str());
+					}
+
+					// Check for NULLs on the basic strings !
+					if (!glConfig.vendor_string) glConfig.vendor_string = "Unknown Vendor";
+					if (!glConfig.renderer_string) glConfig.renderer_string = "Unknown Renderer";
+					if (!glConfig.version_string) glConfig.version_string = "Unknown Version";
+				}
+    	    }
+    	}
+
+		common->Printf("working");
+
+    	// Allocate persistent memory for the string so the engine can reference it
+    	// Using idStr::AllocatedBuffer or similar to ensure it persists
+    	glConfig.extensions_string = Mem_CopyString(fullExtensionString.c_str()); 
+
+    } else {
+        glConfig.extensions_string = exts;
+    }
 
 	// OpenGL driver constants
 	qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
